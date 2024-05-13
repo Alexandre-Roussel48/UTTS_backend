@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String      @id
+  username         String
+  password_hash    String
+  password_salt    String
+  connection_count Int
+  next_card        DateTime    @default(now())
+  next_theft       DateTime    @default(now())
+  last_connection  DateTime    @default(now())
+  inventory        Inventory[]
+  vault            Vault[]
+  thief            Theft[]     @relation("thief")
+  victim           Theft[]     @relation("victim")
+}
+
+model Card {
+  id               Int         @id @default(autoincrement())
+  name             String
+  rarity           String
+  inventories      Inventory[]
+  vaults           Vault[]
+  thefts           Theft[]
+}
+
+model Inventory {
+  id               Int         @id @default(autoincrement())
+  user             User        @relation(fields: [user_id], references: [id])
+  user_id          String
+  card             Card        @relation(fields: [card_id], references: [id])
+  card_id          Int
+  forge            Boolean     @default(false)
+}
+
+model Vault {
+  id               Int         @id @default(autoincrement())
+  user             User        @relation(fields: [user_id], references: [id])
+  user_id          String
+  card             Card        @relation(fields: [card_id], references: [id])
+  card_id          Int
+  rarity           String
+  @@unique([user_id, rarity])
+}
+
+model Theft {
+  id               Int         @id @default(autoincrement())
+  thief            User        @relation("thief", fields: [thief_id], references: [id])
+  thief_id         String
+  victim           User        @relation("victim", fields: [victim_id], references: [id])
+  victim_id        String
+  card             Card        @relation(fields: [card_id], references: [id])
+  card_id          Int
+  date             DateTime    @default(now())
+}
