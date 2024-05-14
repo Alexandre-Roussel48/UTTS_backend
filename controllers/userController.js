@@ -1,4 +1,4 @@
-const { getInventory, getForge, getVault, dropCard, theftCard, updateLastConnection, createVault, updateForge, deleteForge, deleteVault } = require('../models/userModel');
+const { getInventory, getForge, getVault, dropCard, theftCard, forgeCard, updateLastConnection, createVault, updateForge, deleteForge, deleteVault } = require('../models/userModel');
 const userIdToWsMap = require('../websocket/websocketManager');
 
 exports.getInventory = async (req, res) => {
@@ -57,6 +57,16 @@ exports.theft = async (req, res) => {
   res.json({
     theft: theftData.card,
     next_theft: theftData.next_theft
+  });
+};
+
+exports.forge = async (req, res) => {
+  const forgeData = await forgeCard(req.authData.user_id);
+  if (!forgeData) {
+    return res.status(401).json({ status: 'Forge failed' });
+  }
+  res.json({
+    forge : forgeData
   });
 };
 
