@@ -1,4 +1,4 @@
-const { getInventory, getForge, getVault, dropCard, theftCard, forgeCard, updateLastConnection, createVault, updateForge, deleteForge, deleteVault } = require('../models/userModel');
+const { getInventory, getForge, getVault, dropCard, theftCard, forgeCard, createVault, updateForge, deleteForge, deleteVault } = require('../models/userModel');
 const userIdToWsMap = require('../websocket/websocketManager');
 
 exports.getInventory = async (req, res) => {
@@ -68,11 +68,6 @@ exports.forge = async (req, res) => {
   res.json({
     forge : forgeData
   });
-};
-
-exports.setLastConnection = async (req, res) => {
-  await updateLastConnection(req.authData.user_id);
-  return res.status(200).json({ status: 'Last connection set' });
 };
 
 exports.inventoryCard = async (req, res) => {

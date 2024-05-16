@@ -1,5 +1,46 @@
-const { createOrUpdateUser, checkUser } = require('../models/userModel');
+const { createOrUpdateUser, checkUser, getUser, updateLastConnection, getLeaderboard } = require('../models/userModel');
 const jwt = require('jsonwebtoken');
+
+exports.checkConnection = async (req, res) => {
+    if (typeof req.cookies.authToken !== 'undefined') {
+        const bearerToken = req.cookies.authToken;
+        jwt.verify(bearerToken, process.env.SECRET_KEY, (err, authData) => {
+            if (err) {
+                return res.status(200).json({ status: 'Error checking connection' });
+            } else {
+                req.authData = authData;
+            }
+        });
+        const check_data = await getUser(req.authData.user_id, true);
+        if (!check_data) {
+            return res.status(200).json({ status: 'Error checking connection' });
+        }
+        const user_data = check_data.user;
+        const thefts = check_data.thefts;
+
+        res.json({
+            user_data : {
+                username: user_data.username,
+                connection_count: user_data.connection_count,
+                next_card: user_data.next_card,
+                next_theft: user_data.next_theft,
+                thefts: thefts
+            }
+        });
+    } else {
+        return res.status(200).json({ status: 'Error checking connection' });
+    }
+
+};
+
+exports.getLeaderboard = async(req, res) => {
+    try {
+        const users = await getLeaderboard();
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ status: 'Something went wrong' });
+    }
+};
 
 exports.register = async (req, res) => {
     try {
@@ -14,17 +55,52 @@ exports.register = async (req, res) => {
 
         const user_data = check_data.user;
 
-        const token = jwt.sign({ user_id: user_data.id }, process.env.SECRET_KEY, { expiresIn: '1h' });
+        let token;
+        if (data.remember) {
+            token = jwt.sign({ user_id: user_data.id }, process.env.SECRET_KEY);
+        } else {
+            token = jwt.sign({ user_id: user_data.id }, process.env.SECRET_KEY, { expiresIn: process.env.ACCESS_TOKEN_EXPIRY });
+            refresh_token = jwt.sign({ user_id: user_data.id }, process.env.REFRESH_SECRET_KEY, { expiresIn: process.env.REFRESH_TOKEN_EXPIRY });
+
+            res.cookie('refreshToken', refresh_token, {
+                httpOnly: true,
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+                sameSite: 'lax'
+            });
+        }
+
+        res.cookie('authToken', token, {
+            httpOnly: true,
+            maxAge: 15 * 60 * 1000,
+            sameSite: 'lax'
+        });
 
         res.json({
-            token: token,
-            connection_count: user_data.connection_count,
-            next_card: user_data.next_card,
-            next_theft: user_data.next_theft
+            user_data: {
+                connection_count: user_data.connection_count,
+                next_card: user_data.next_card,
+                next_theft: user_data.next_theft
+            }
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ status: 'Something went wrong' });
     }
+};
+
+exports.setLastConnection = async (req, res) => {
+    if (typeof req.cookies.authToken !== 'undefined') {
+        const bearerToken = req.cookies.authToken;
+        jwt.verify(bearerToken, process.env.SECRET_KEY, (err, authData) => {
+            if (err) {
+                return res.status(200).json({ status: 'Error checking connection' });
+            } else {
+                req.authData = authData;
+            }
+        });
+        await updateLastConnection(req.authData.user_id);
+        return res.status(200).json({ status: 'Last connection set' });
+    }
+    return res.status(200).json({ status: 'Last connection not set' });
 };
 
 exports.login = async (req, res) => {
@@ -38,16 +114,42 @@ exports.login = async (req, res) => {
         const user_data = check_data.user;
         const thefts = check_data.thefts;
 
-        const token = jwt.sign({ user_id: user_data.id }, process.env.SECRET_KEY, { expiresIn: '1h' });
+        let token;
+        if (data.remember) {
+            token = jwt.sign({ user_id: user_data.id }, process.env.SECRET_KEY);
+        } else {
+            token = jwt.sign({ user_id: user_data.id }, process.env.SECRET_KEY, { expiresIn: process.env.ACCESS_TOKEN_EXPIRY });
+            refresh_token = jwt.sign({ user_id: user_data.id }, process.env.REFRESH_SECRET_KEY, { expiresIn: process.env.REFRESH_TOKEN_EXPIRY });
+
+            res.cookie('refreshToken', refresh_token, {
+                httpOnly: true,
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+                sameSite: 'lax'
+            });
+        }
+
+        res.cookie('authToken', token, {
+            httpOnly: true,
+            maxAge: 15 * 60 * 1000,
+            sameSite: 'lax'
+        });
 
         res.json({
-            token: token,
-            connection_count: user_data.connection_count,
-            next_card: user_data.next_card,
-            next_theft: user_data.next_theft,
-            thefts: thefts
+            user_data : {
+                connection_count: user_data.connection_count,
+                next_card: user_data.next_card,
+                next_theft: user_data.next_theft,
+                thefts: thefts
+            }
         });
     } catch (error) {
+        console.log(error);
         return res.status(500).json({ status: 'Register before logging in' });
     }
 };
+
+exports.logout = async (req, res) => {
+    res.clearCookie('authToken');
+    res.clearCookie('refreshToken');
+    return res.status(200).json({ status: 'User logged out' });
+}
