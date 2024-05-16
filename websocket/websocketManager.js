@@ -9,10 +9,9 @@ const wss = new WebSocket.Server({ server });
 const userIdToWsMap = {};
 
 wss.on('connection', (ws, req) => {
-  const url = new URL(req.url, 'http://localhost:3000');
-  const token = url.searchParams.get('authorization');
-
   try {
+    const tokenPattern = new RegExp(`authToken=([^;]+)`);
+    const token = req.headers.cookie.match(tokenPattern)[1];
     const decodedToken = jwt.verify(token, process.env.SECRET_KEY);
     const userId = decodedToken.user_id;
 
