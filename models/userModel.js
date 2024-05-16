@@ -121,6 +121,112 @@ async function checkUser(data) {
     }
 }
 
+async function getLeaderboard() {
+    try {
+        const users = await prisma.user.findMany();
+        for (let user of users) {
+            const inventories = await prisma.inventory.findMany({
+                where: {
+                    user_id: user.id
+                }
+            });
+            const inventoryMap = inventories.map(inventory => inventory.card_id);
+
+            const vaults = await prisma.vault.findMany({
+                where: {
+                    user_id: user.id
+                }
+            });
+            const vaultMap = vaults.map(vault => vault.card_id);
+
+            const cards = await prisma.card.findMany({
+                where: {
+                    OR: [
+                        {
+                            id: {
+                              in: inventoryMap
+                            }
+                        },
+                        {
+                            id: {
+                              in: vaultMap
+                            }
+                        }
+                    ]
+                }
+            });
+            user.cards = cards;
+        }
+        return users.map(user => ({
+            username: user.username,
+            cards: user.cards.length
+        }));
+    } catch (error) {
+        throw new Error(`Error in getLeaderboard function: ${error.message}`);
+    } 
+}
+
+async function incrementConnectionCount(userId) {
+    const res = await prisma.user.findUnique({
+        where: { id: userId }
+    });
+
+    await prisma.user.update({
+        where: {
+            id: userId
+        },
+        data: {
+            connection_count: res.connection_count + 1
+        }
+    });
+}
+
+async function getUser(userId, increment) {
+    try {
+        if (increment) {
+            incrementConnectionCount(userId);
+        }
+
+        const res = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        const thefts = await prisma.theft.findMany({
+            where: {
+                victim_id: userId,
+                date: {
+                    gt: res.last_connection
+                }
+            }
+        });
+
+        const reformattedThefts = await Promise.all(thefts.map(async (theft) => {
+            const card = await prisma.card.findUnique({
+                where: {
+                    id: theft.card_id
+                }
+            });
+            const thief = await prisma.user.findUnique({
+                where: {
+                    id: theft.thief_id
+                }
+            });
+            return {
+                card: card,
+                thief: thief.username
+            };
+        }));
+
+        return {
+            user: res,
+            thefts: reformattedThefts
+        };
+    } catch (error) {
+        console.log(`Error in getUser function: ${error.message}`);
+        return null;
+    }
+}
+
 async function getForge(userId) {
     try {
         const inventories = await prisma.inventory.findMany({
@@ -140,7 +246,8 @@ async function getForge(userId) {
         }
         return cards;
     } catch (error) {
-        throw new Error(`Error fetching inventory: ${error.message}`);
+        console.log(`Error fetching forge: ${error.message}`);
+        return null;
     }
 }
 
@@ -163,7 +270,8 @@ async function getInventory(userId) {
         }
         return cards;
     } catch (error) {
-        throw new Error(`Error fetching inventory: ${error.message}`);
+        console.log(`Error fetching inventory: ${error.message}`);
+        return null;
     }
 }
 
@@ -184,7 +292,8 @@ async function getVault(userId) {
         });
         return cards;
     } catch (error) {
-        throw new Error(`Error fetching inventory: ${error.message}`);
+        console.log(`Error fetching vault: ${error.message}`);
+        return null;
     }
 }
 
@@ -222,7 +331,8 @@ async function dropCard(userId) {
 
         return { drop: drop, next_card: updatedUser.next_card };
     } catch (error) {
-        throw new Error(`Error fetching drop: ${error.message}`);
+        console.log(`Error fetching drop: ${error.message}`);
+        return null;
     }
 }
 
@@ -231,10 +341,6 @@ async function theftCard(userId) {
         const user = await prisma.user.findUnique({
             where: { id: userId },
         });
-
-        if (!user) {
-            return null;
-        }
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
@@ -271,7 +377,8 @@ async function theftCard(userId) {
 
         return { card: card, next_theft: updatedUser.next_theft, thief : user.username, victim_id : theft.victim_id};
     } catch (error) {
-        throw new Error(`Error fetching theft: ${error.message}`);
+        console.log(`Error fetching theft: ${error.message}`);
+        return null;
     }
 }
 
@@ -299,11 +406,11 @@ async function forgeCard(userId) {
         for (let card of cards) {
             if (card.rarity == "common") {weight += 1;}
             else if (card.rarity == "uncommon") {weight += 5;}
-            else if (card.rarity == "rare") {weight += 7;}
-            else if (card.rarity == "epic") {weight += 11;}
-            else if (card.rarity == "legendary") {weight += 23;}
+            else if (card.rarity == "rare") {weight += 11;}
+            else if (card.rarity == "epic") {weight += 23;}
+            else if (card.rarity == "legendary") {weight += 41;}
         }
-        if (Math.random() < 0.7) {
+        if (Math.random() < 0.6) {
             weight /= 2;
         }
 
@@ -315,7 +422,7 @@ async function forgeCard(userId) {
 
         // Forge a new card
         let forge;
-        if (weight <= 1) {
+        if (weight < 5) {
             const commonCards = await prisma.card.findMany({
               where: {
                 rarity: 'common'
@@ -323,7 +430,7 @@ async function forgeCard(userId) {
             });
 
             forge = commonCards.sort(() => Math.random() - 0.5).slice(0, 1)[0];
-        } else if (weight <= 5) {
+        } else if (weight < 11) {
             const uncommonCards = await prisma.card.findMany({
               where: {
                 rarity: 'uncommon'
@@ -331,7 +438,7 @@ async function forgeCard(userId) {
             });
 
             forge = uncommonCards.sort(() => Math.random() - 0.5).slice(0, 1)[0];
-        } else if (weight <= 7) {
+        } else if (weight < 23) {
             const rareCards = await prisma.card.findMany({
               where: {
                 rarity: 'rare'
@@ -339,7 +446,7 @@ async function forgeCard(userId) {
             });
 
             forge = rareCards.sort(() => Math.random() - 0.5).slice(0, 1)[0];
-        } else if (weight <= 11) {
+        } else if (weight < 41) {
             const epicCards = await prisma.card.findMany({
               where: {
                 rarity: 'epic'
@@ -347,7 +454,7 @@ async function forgeCard(userId) {
             });
 
             forge = epicCards.sort(() => Math.random() - 0.5).slice(0, 1)[0];
-        } else if (weight <= 23) {
+        } else {
             const legendaryCards = await prisma.card.findMany({
               where: {
                 rarity: 'legendary'
@@ -366,7 +473,8 @@ async function forgeCard(userId) {
 
         return forge;
     } catch (error) {
-        throw new Error(`Error forging card: ${error.message}`);
+        console.log(`Error forging card: ${error.message}`);
+        return null;
     }
 }
 
@@ -381,7 +489,8 @@ async function updateLastConnection(userId) {
             }
         });
     } catch (error) {
-        throw new Error(`Error updating last connection: ${error.message}`);
+        console.log(`Error updating last connection: ${error.message}`);
+        return null;
     }
 }
 
@@ -431,7 +540,8 @@ async function createVault(userId, card) {
 
         return 1;
     } catch (error) {
-        throw new Error(`Error in createVault function: ${error.message}`);
+        console.log(`Error in createVault function: ${error.message}`);
+        return null;
     }
 }
 
@@ -456,7 +566,8 @@ async function updateForge(userId, card) {
 
         return 1;
     } catch (error) {
-        throw new Error(`Error in updateForge function: ${error.message}`);
+        console.log(`Error in updateForge function: ${error.message}`);
+        return null;
     }  
 }
 
@@ -481,7 +592,8 @@ async function deleteForge(userId, card) {
 
         return 1;
     } catch (error) {
-        throw new Error(`Error in updateForge function: ${error.message}`);
+        console.log(`Error in deleteForge function: ${error.message}`);
+        return null;
     }  
 }
 
@@ -511,13 +623,16 @@ async function deleteVault(userId, card) {
 
         return 1;
     } catch (error) {
-        throw new Error(`Error in updateForge function: ${error.message}`);
+        console.log(`Error in deleteVault function: ${error.message}`);
+        return null;
     }  
 }
 
 module.exports = {
     createOrUpdateUser,
     checkUser,
+    getLeaderboard,
+    getUser,
     getInventory,
     getVault,
     getForge,
