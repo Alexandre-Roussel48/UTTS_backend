@@ -1,4 +1,4 @@
-const { getInventory, getForge, getVault, dropCard, theftCard, forgeCard, createVault, updateForge, deleteForge, deleteVault } = require('../models/userModel');
+const { getInventory, getForge, getVault, dropCard, theftCard, forgeCard, createVault, updateForge, deleteForge, deleteVault, getUserData } = require('../models/userModel');
 const userIdToWsMap = require('../websocket/websocketManager');
 
 exports.getInventory = async (req, res) => {
@@ -98,3 +98,12 @@ exports.forgeCard = async (req, res) => {
   }
   return res.status(200).json({ status: 'Card sent to forge' });
 }
+
+exports.getUserData = async(req, res) => {
+    try {
+        const user = await getUserData(req.authData.user_id);
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ status: 'Something went wrong' });
+    }
+};

@@ -13,5 +13,6 @@ router.post('/forge', verifyToken, userController.forge);
 router.post('/inventory_card', verifyToken, userController.inventoryCard);
 router.post('/vault_card', verifyToken, userController.vaultCard);
 router.post('/forge_card', verifyToken, userController.forgeCard);
+router.post('/get_user_data', verifyToken, userController.getUserData);
 
 module.exports = router;

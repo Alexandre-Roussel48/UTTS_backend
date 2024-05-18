@@ -160,10 +160,182 @@ async function getLeaderboard() {
         return users.map(user => ({
             username: user.username,
             cards: user.cards.length
-        }));
+        })).sort((a, b) => b.cards - a.cards);;
     } catch (error) {
         throw new Error(`Error in getLeaderboard function: ${error.message}`);
     } 
+}
+
+async function getUserData(userId) {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        const inventories = await prisma.inventory.findMany({
+            where: {
+                user_id: userId
+            }
+        });
+        const inventoryMap = inventories.map(inventory => inventory.card_id);
+
+        const vaults = await prisma.vault.findMany({
+            where: {
+                user_id: userId
+            }
+        });
+        const vaultMap = vaults.map(vault => vault.card_id);
+
+        const cards = await prisma.card.findMany({
+            where: {
+                OR: [
+                    {
+                        id: {
+                          in: inventoryMap
+                        }
+                    },
+                    {
+                        id: {
+                          in: vaultMap
+                        }
+                    }
+                ]
+            }
+        });
+
+        const common = await prisma.card.findMany({
+            where: {
+                AND: [
+                    {
+                        OR: [
+                            {
+                                id: {
+                                  in: inventoryMap
+                                }
+                            },
+                            {
+                                id: {
+                                  in: vaultMap
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        rarity: 'common'
+                    }
+                ]
+            }
+        });
+
+        const uncommon = await prisma.card.findMany({
+            where: {
+                AND: [
+                    {
+                        OR: [
+                            {
+                                id: {
+                                  in: inventoryMap
+                                }
+                            },
+                            {
+                                id: {
+                                  in: vaultMap
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        rarity: 'uncommon'
+                    }
+                ]
+            }
+        });
+
+        const rare = await prisma.card.findMany({
+            where: {
+                AND: [
+                    {
+                        OR: [
+                            {
+                                id: {
+                                  in: inventoryMap
+                                }
+                            },
+                            {
+                                id: {
+                                  in: vaultMap
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        rarity: 'rare'
+                    }
+                ]
+            }
+        });
+
+        const epic = await prisma.card.findMany({
+            where: {
+                AND: [
+                    {
+                        OR: [
+                            {
+                                id: {
+                                  in: inventoryMap
+                                }
+                            },
+                            {
+                                id: {
+                                  in: vaultMap
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        rarity: 'epic'
+                    }
+                ]
+            }
+        });
+
+        const legendary = await prisma.card.findMany({
+            where: {
+                AND: [
+                    {
+                        OR: [
+                            {
+                                id: {
+                                  in: inventoryMap
+                                }
+                            },
+                            {
+                                id: {
+                                  in: vaultMap
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        rarity: 'legendary'
+                    }
+                ]
+            }
+        });
+
+        return {
+            username: user.username,
+            cards: cards.length,
+            common: common.length,
+            uncommon: uncommon.length,
+            rare: rare.length,
+            epic: epic.length,
+            legendary: legendary.length
+        };
+    } catch (error) {
+        console.log(`Error in getUserData function: ${error.message}`);
+        return null;
+    }
 }
 
 async function incrementConnectionCount(userId) {
@@ -633,6 +805,7 @@ module.exports = {
     checkUser,
     getLeaderboard,
     getUser,
+    getUserData,
     getInventory,
     getVault,
     getForge,

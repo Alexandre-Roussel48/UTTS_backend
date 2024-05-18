@@ -11,7 +11,7 @@ exports.checkConnection = async (req, res) => {
                 req.authData = authData;
             }
         });
-        const check_data = await getUser(req.authData.user_id, true);
+        const check_data = await getUser(req.authData.user_id, req.body.increment);
         if (!check_data) {
             return res.status(200).json({ status: 'Error checking connection' });
         }
