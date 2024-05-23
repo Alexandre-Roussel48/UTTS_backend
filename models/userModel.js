@@ -481,7 +481,7 @@ async function dropCard(userId) {
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
-            data: { next_card: new Date(Date.now() + 10000) }, // 10 secs from now
+            data: { next_card: new Date(Date.now() + (1000 * 60 * 5)) },
         });
 
         const commonCards = await prisma.card.findMany({
@@ -516,7 +516,7 @@ async function theftCard(userId) {
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
-            data: { next_theft: new Date(Date.now() + 10000) },
+            data: { next_theft: new Date(Date.now() + (1000 * 60 * 10)) },
         });
 
         const theftId = await createOrUpdateTheft(userId);

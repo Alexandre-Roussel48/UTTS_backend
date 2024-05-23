@@ -16,7 +16,7 @@ function verifyToken(req, res, next) {
               res.cookie('authToken', token, {
                   httpOnly: true,
                   maxAge: 15 * 60 * 1000,
-                  sameSite: 'lax'
+                  sameSite: 'none'
               });
             }
           });

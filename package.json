@@ -2,7 +2,7 @@
   "name": "uselessthingstosteal",
   "version": "0.0.0",
   "scripts": {
-    "back": "nodemon app.js",
+    "back": "node app.js",
     "db": "npx prisma db push && node prisma/seed.js"
   },
   "dependencies": {
