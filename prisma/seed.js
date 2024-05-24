@@ -1,4 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
+const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcrypt');
 
 const prisma = new PrismaClient();
 
@@ -52,6 +54,19 @@ async function main() {
         {id: 44, name: 'bus_tam', rarity: 'legendary'},
         {id: 45, name: 'c15', rarity: 'legendary'}
       ],
+    });
+
+    const salt = uuidv4();
+    const hashedPassword = await bcrypt.hash(process.env.ADMIN_PWD + salt, 10);
+    await prisma.user.create({
+        data: {
+            id: uuidv4(),
+            username: process.env.ADMIN_USERNAME,
+            connection_count: -1,
+            password_hash: hashedPassword,
+            password_salt: salt,
+            is_admin: true
+        }
     });
 
     console.log('Multiple rows created successfully');

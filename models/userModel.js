@@ -5,6 +5,19 @@ const { createOrUpdateTheft } = require('../models/theftModel');
 
 const prisma = new PrismaClient();
 
+async function isAdmin(userId) {
+    try {
+        const user = await prisma.user.findUnique({
+            where: {
+                id: userId
+            }
+        });
+        return user.is_admin;
+    } catch (error) {
+        throw new Error(`Error in isAdmin function: ${error.message}`);
+    }
+}
+
 async function createOrUpdateUser(data) {
     try {
         let salt = uuidv4();
@@ -351,6 +364,30 @@ async function incrementConnectionCount(userId) {
             connection_count: res.connection_count + 1
         }
     });
+}
+
+async function getUsers() {
+    try {
+        const users = await prisma.user.findMany();
+        return users.map(user => ({
+            id: user.id,
+            username: user.username
+        }));
+    } catch (error) {
+        throw new Error(`Error in getUsers function: ${error.message}`);
+    }
+}
+
+async function deleteUser(userId) {
+    try {
+        await prisma.inventory.deleteMany({where: {user_id: userId}});
+        await prisma.vault.deleteMany({where: {user_id: userId}});
+        await prisma.theft.deleteMany({where: {thief_id: userId}});
+        await prisma.theft.deleteMany({where: {victim_id: userId}});
+        await prisma.user.delete({where: {id: userId}});
+    } catch (error) {
+        throw new Error(`Error in deleteUser function: ${error.message}`);
+    }
 }
 
 async function getUser(userId, increment) {
@@ -801,9 +838,12 @@ async function deleteVault(userId, card) {
 }
 
 module.exports = {
+    isAdmin,
     createOrUpdateUser,
     checkUser,
     getLeaderboard,
+    getUsers,
+    deleteUser,
     getUser,
     getUserData,
     getInventory,

@@ -1,4 +1,4 @@
-const { createOrUpdateUser, checkUser, getUser, updateLastConnection, getLeaderboard } = require('../models/userModel');
+const { isAdmin, createOrUpdateUser, checkUser, getUser, getUsers, deleteUser, updateLastConnection, getLeaderboard } = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 
 exports.checkConnection = async (req, res) => {
@@ -22,6 +22,7 @@ exports.checkConnection = async (req, res) => {
             user_data : {
                 username: user_data.username,
                 connection_count: user_data.connection_count,
+                is_admin: user_data.is_admin,
                 next_card: user_data.next_card,
                 next_theft: user_data.next_theft,
                 thefts: thefts
@@ -37,6 +38,32 @@ exports.getLeaderboard = async(req, res) => {
     try {
         const users = await getLeaderboard();
         res.json(users);
+    } catch (error) {
+        res.status(500).json({ status: 'Something went wrong' });
+    }
+};
+
+exports.getUsers = async(req, res) => {
+    try {
+        if (isAdmin(req.authData.user_id)) {
+            const users = await getUsers();
+            res.json(users);
+        } else {
+            res.status(500).json({ status: 'Admin route' });
+        }
+    } catch (error) {
+        res.status(500).json({ status: 'Something went wrong' });
+    }
+};
+
+exports.deleteUser = async(req, res) => {
+    try {
+        if (isAdmin(req.authData.user_id)) {
+            await deleteUser(req.body.user_id);
+            res.status(200).json({ status: 'User deleted' });
+        } else {
+            res.status(500).json({ status: 'Admin route' });
+        }
     } catch (error) {
         res.status(500).json({ status: 'Something went wrong' });
     }
@@ -78,6 +105,7 @@ exports.register = async (req, res) => {
         res.json({
             user_data: {
                 connection_count: user_data.connection_count,
+                is_admin: user_data.is_admin,
                 next_card: user_data.next_card,
                 next_theft: user_data.next_theft
             }
@@ -137,6 +165,7 @@ exports.login = async (req, res) => {
         res.json({
             user_data : {
                 connection_count: user_data.connection_count,
+                is_admin: user_data.is_admin,
                 next_card: user_data.next_card,
                 next_theft: user_data.next_theft,
                 thefts: thefts

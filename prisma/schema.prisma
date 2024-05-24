@@ -16,6 +16,7 @@ model User {
   next_card        DateTime    @default(now())
   next_theft       DateTime    @default(now())
   last_connection  DateTime    @default(now())
+  is_admin         Boolean     @default(false)
   inventory        Inventory[]
   vault            Vault[]
   thief            Theft[]     @relation("thief")
