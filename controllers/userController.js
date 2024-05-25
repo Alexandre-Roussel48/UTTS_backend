@@ -1,4 +1,8 @@
-const { getInventory, getForge, getVault, dropCard, theftCard, forgeCard, createVault, updateForge, deleteForge, deleteVault, getUserData } = require('../models/userModel');
+const { getUserData } = require('../models/userModel');
+const { getInventory, dropCard } = require('../models/inventoryModel');
+const { getForge, forgeCard, updateForge, deleteForge } = require('../models/forgeModel');
+const { getVault, createVault, deleteVault } = require('../models/vaultModel');
+const { theftCard } = require('../models/theftModel');
 const userIdToWsMap = require('../websocket/websocketManager');
 
 exports.getInventory = async (req, res) => {

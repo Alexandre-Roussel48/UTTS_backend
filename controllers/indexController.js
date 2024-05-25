@@ -1,4 +1,4 @@
-const { isAdmin, createOrUpdateUser, checkUser, getUser, getUsers, deleteUser, updateLastConnection, getLeaderboard } = require('../models/userModel');
+const { isAdmin, createUser, checkUser, getUser, getUsers, deleteUser, updateLastConnection, getLeaderboard } = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 
 exports.checkConnection = async (req, res) => {

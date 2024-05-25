@@ -4,15 +4,15 @@ const verifyToken = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-router.post('/get_inventory', verifyToken, userController.getInventory);
-router.post('/get_forge', verifyToken, userController.getForge);
-router.post('/get_vault', verifyToken, userController.getVault);
-router.post('/drop', verifyToken, userController.drop);
-router.post('/theft', verifyToken, userController.theft);
+router.get('/inventory', verifyToken, userController.getInventory);
+router.get('/forge', verifyToken, userController.getForge);
+router.get('/vault', verifyToken, userController.getVault);
+router.get('/drop', verifyToken, userController.drop);
+router.get('/theft', verifyToken, userController.theft);
+router.get('/data', verifyToken, userController.getUserData);
+router.put('/forge', verifyToken, userController.forgeCard);
+router.put('/inventory', verifyToken, userController.inventoryCard);
+router.put('/vault', verifyToken, userController.vaultCard);
 router.post('/forge', verifyToken, userController.forge);
-router.post('/inventory_card', verifyToken, userController.inventoryCard);
-router.post('/vault_card', verifyToken, userController.vaultCard);
-router.post('/forge_card', verifyToken, userController.forgeCard);
-router.post('/get_user_data', verifyToken, userController.getUserData);
 
 module.exports = router;

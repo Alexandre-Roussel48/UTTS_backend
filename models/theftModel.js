@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
-async function createOrUpdateTheft(userId) {
+async function createTheft(userId) {
   try {
     const users = await prisma.user.findMany({
       where: {
@@ -42,6 +42,52 @@ async function createOrUpdateTheft(userId) {
   }
 }
 
+async function theftCard(userId) {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        const theftId = await createTheft(userId);
+
+        const theft = await prisma.theft.findUnique({
+            where: { id: theftId },
+        });
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: { next_theft: new Date(Date.now() + (1000 * 60 * 5)) },
+        });
+
+        const card = await prisma.card.findUnique({
+            where: { id: theft.card_id },
+        });
+
+        const inventoryToDelete = await prisma.inventory.findFirst({
+          where: {
+            user_id: theft.victim_id,
+            card_id: theft.card_id
+          }
+        });
+
+        await prisma.inventory.delete({
+            where: { id: inventoryToDelete.id },
+        });
+
+        const inventory = await prisma.inventory.create({
+            data: {
+              user_id: userId,
+              card_id: card.id,
+            },
+        });
+
+        return { card: card, next_theft: updatedUser.next_theft, thief : user.username, victim_id : theft.victim_id};
+    } catch (error) {
+        console.log(`Error fetching theft: ${error.message}`);
+        return null;
+    }
+}
+
 module.exports = {
-    createOrUpdateTheft
+    theftCard
 };
