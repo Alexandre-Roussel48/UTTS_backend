@@ -76,7 +76,7 @@ exports.register = async (req, res) => {
             return res.status(400).json({ status: 'Username and password are required' });
         }
 
-        await createOrUpdateUser(data);
+        await createUser(data);
 
         const check_data = await checkUser(data);
 
@@ -115,7 +115,6 @@ exports.register = async (req, res) => {
             }
         });
     } catch (error) {
-        console.log(error);
         res.status(500).json({ status: 'Something went wrong' });
     }
 };
