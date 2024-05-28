@@ -48,15 +48,19 @@ async function theftCard(userId) {
             where: { id: userId },
         });
 
-        const theftId = await createTheft(userId);
+        if (!user || user.next_theft > new Date()) {
+            return null;
+        }
 
-        const theft = await prisma.theft.findUnique({
-            where: { id: theftId },
-        });
+        const theftId = await createTheft(userId);
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
             data: { next_theft: new Date(Date.now() + (1000 * 60 * 2)) },
+        });
+
+        const theft = await prisma.theft.findUnique({
+            where: { id: theftId },
         });
 
         const card = await prisma.card.findUnique({
