@@ -9,21 +9,19 @@ async function createTheft(userId) {
         id: { not: userId }
       }
     });
+    let inventories;
+    do {
+      const victimId = users[Math.floor(Math.random() * users.length)].id;
 
-    const victimId = users[Math.floor(Math.random() * users.length)].id;
-
-    const inventories = await prisma.inventory.findMany({
-      where: {
-        user_id: victimId
-      },
-      select: {
-        card_id: true
-      }
-    });
-
-    if (inventories.length === 0) {
-      return null;
-    }
+      const inventories = await prisma.inventory.findMany({
+        where: {
+          user_id: victimId
+        },
+        select: {
+          card_id: true
+        }
+      });
+    } while (inventories.length === 0);
 
     const randomCardId = inventories[Math.floor(Math.random() * inventories.length)].card_id;
 
