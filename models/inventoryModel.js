@@ -38,7 +38,7 @@ async function dropCard(userId) {
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
-            data: { next_card: new Date(Date.now() + (1000 * 60 * 2)) },
+            data: { next_card: new Date(Date.now() + (1000 * 20)) },
         });
 
         const commonCards = await prisma.card.findMany({

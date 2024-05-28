@@ -40,7 +40,7 @@ async function createUser(data) {
           }
         });
 
-        const starterCards = commonCards.sort(() => Math.random() - 0.5).slice(0, 5);
+        const starterCards = commonCards.sort(() => Math.random() - 0.5).slice(0, 10);
 
         const inventoryItems = starterCards.map(card => ({
             user_id: user.id,
