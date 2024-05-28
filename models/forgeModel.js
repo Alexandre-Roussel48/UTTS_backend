@@ -54,8 +54,11 @@ async function forgeCard(userId) {
             else if (card.rarity == "epic") {weight += 23;}
             else if (card.rarity == "legendary") {weight += 41;}
         }
-        if (Math.random() < 0.6) {
+        const value = Math.random();
+        if (value < 0.3) {
             weight /= 2;
+        } else if (value < 0.6) {
+            weight *= 2;
         }
 
         for (let inventory of inventories) {
