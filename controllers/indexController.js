@@ -6,14 +6,14 @@ exports.checkConnection = async (req, res) => {
         const bearerToken = req.cookies.authToken;
         jwt.verify(bearerToken, process.env.SECRET_KEY, (err, authData) => {
             if (err) {
-                return res.status(200).json({ status: 'Error checking connection' });
+                return res.status(200).json({ status: 'Error decrypting authToken' });
             } else {
                 req.authData = authData;
             }
         });
         const check_data = await getUser(req.authData.user_id, req.body.increment);
         if (!check_data) {
-            return res.status(200).json({ status: 'Error checking connection' });
+            return res.status(200).json({ status: 'Error checking user' });
         }
         const user_data = check_data.user;
         const thefts = check_data.thefts;
@@ -29,7 +29,7 @@ exports.checkConnection = async (req, res) => {
             }
         });
     } else {
-        return res.status(200).json({ status: 'Error checking connection' });
+        return res.status(200).json({ status: 'authToken is not set' });
     }
 
 };
