@@ -92,7 +92,7 @@ exports.register = async (req, res) => {
             res.cookie('refreshToken', refresh_token, {
                 httpOnly: true,
                 maxAge: 7 * 24 * 60 * 60 * 1000,
-                sameSite: 'lax',
+                sameSite: 'Lax',
                 domain: process.env.DOMAIN,
                 secure: true
             });
@@ -101,7 +101,7 @@ exports.register = async (req, res) => {
         res.cookie('authToken', token, {
             httpOnly: true,
             maxAge: 15 * 60 * 1000,
-            sameSite: 'lax',
+            sameSite: 'Lax',
             domain: process.env.DOMAIN,
             secure: true
         });
@@ -156,7 +156,7 @@ exports.login = async (req, res) => {
             res.cookie('refreshToken', refresh_token, {
                 httpOnly: true,
                 maxAge: 7 * 24 * 60 * 60 * 1000,
-                sameSite: 'none',
+                sameSite: 'Lax',
                 domain: process.env.DOMAIN,
                 secure: true
             });
@@ -165,7 +165,7 @@ exports.login = async (req, res) => {
         res.cookie('authToken', token, {
             httpOnly: true,
             maxAge: 15 * 60 * 1000,
-            sameSite: 'none',
+            sameSite: 'Lax',
             domain: process.env.DOMAIN,
             secure: true
         });
@@ -185,7 +185,19 @@ exports.login = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
-    res.clearCookie('authToken');
-    res.clearCookie('refreshToken');
+    res.clearCookie('authToken', {
+        path: '/',
+        domain: process.env.DOMAIN,
+        secure: true,
+        sameSite: 'Lax',
+        httpOnly: true
+    });
+    res.clearCookie('refreshToken', {
+        path: '/',
+        domain: process.env.DOMAIN,
+        secure: true,
+        sameSite: 'Lax',
+        httpOnly: true
+    });
     return res.status(200).json({ status: 'User logged out' });
-}
+};
