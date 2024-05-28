@@ -9,9 +9,10 @@ async function createTheft(userId) {
         id: { not: userId }
       }
     });
+    let victimId;
     let inventories;
     do {
-      const victimId = users[Math.floor(Math.random() * users.length)].id;
+      victimId = users[Math.floor(Math.random() * users.length)].id;
 
       inventories = await prisma.inventory.findMany({
         where: {
