@@ -3,7 +3,7 @@ const { getInventory, dropCard } = require('../models/inventoryModel');
 const { getForge, forgeCard, updateForge, deleteForge } = require('../models/forgeModel');
 const { getVault, createVault, deleteVault } = require('../models/vaultModel');
 const { theftCard } = require('../models/theftModel');
-const userIdToWsMap = require('../websocket/websocketManager');
+const userIdToWsMap = require('../websocket');
 
 exports.getInventory = async (req, res) => {
   const inventory = await getInventory(req.authData.user_id);

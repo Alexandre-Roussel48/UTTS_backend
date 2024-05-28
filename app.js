@@ -1,23 +1,23 @@
 const express = require('express');
 const http = require('http');
-const WebSocket = require('ws');
-const routes = require('./routes');
+const { routes } = require('./routes');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 
 const app = express();
+
 app.use(cookieParser());
 
 app.use(cors({origin: process.env.FRONTEND_URL, credentials: true}));
 
 app.use(bodyParser.json());
 
-app.use('/api', routes);
+var expressWs = require('express-ws')(app);
 
-const server = http.createServer(app);
+app.use('/api', routes());
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
+app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
