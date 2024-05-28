@@ -13,7 +13,7 @@ async function createTheft(userId) {
     do {
       const victimId = users[Math.floor(Math.random() * users.length)].id;
 
-      const inventories = await prisma.inventory.findMany({
+      inventories = await prisma.inventory.findMany({
         where: {
           user_id: victimId
         },
