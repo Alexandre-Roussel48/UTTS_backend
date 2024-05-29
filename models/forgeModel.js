@@ -23,6 +23,8 @@ async function getForge(userId) {
     } catch (error) {
         console.log(`Error fetching forge: ${error.message}`);
         return null;
+    } finally {
+        await prisma.$disconnect();
     }
 }
 
@@ -122,6 +124,8 @@ async function forgeCard(userId) {
     } catch (error) {
         console.log(`Error forging card: ${error.message}`);
         return null;
+    } finally {
+        await prisma.$disconnect();
     }
 }
 
@@ -148,7 +152,9 @@ async function updateForge(userId, card) {
     } catch (error) {
         console.log(`Error in updateForge function: ${error.message}`);
         return null;
-    }  
+    } finally {
+        await prisma.$disconnect();
+    }
 }
 
 async function deleteForge(userId, card) {
@@ -174,7 +180,9 @@ async function deleteForge(userId, card) {
     } catch (error) {
         console.log(`Error in deleteForge function: ${error.message}`);
         return null;
-    }  
+    } finally {
+        await prisma.$disconnect();
+    }
 }
 
 module.exports = {

@@ -41,6 +41,8 @@ async function createTheft(userId) {
   } catch (error) {
     console.log(error.message);
     return null;
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -63,34 +65,43 @@ async function deleteTheft(userId, theftId) {
   } catch (error) {
     console.log(error.message);
     return null;
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 async function getThefts(victimId) {
-  const thefts = await prisma.theft.findMany({
-    where: {
-      victim_id: victimId
-    }
-  });
+  try {
+    const thefts = await prisma.theft.findMany({
+      where: {
+        victim_id: victimId
+      }
+    });
 
-  const reformattedThefts = await Promise.all(thefts.map(async (theft) => {
-      const card = await prisma.card.findUnique({
-          where: {
-              id: theft.card_id
-          }
-      });
-      const thief = await prisma.user.findUnique({
-          where: {
-              id: theft.thief_id
-          }
-      });
-      return {
-        id: theft.id,
-        card: card,
-        thief: thief.username
-      };
-  }));
-  return reformattedThefts;
+    const reformattedThefts = await Promise.all(thefts.map(async (theft) => {
+        const card = await prisma.card.findUnique({
+            where: {
+                id: theft.card_id
+            }
+        });
+        const thief = await prisma.user.findUnique({
+            where: {
+                id: theft.thief_id
+            }
+        });
+        return {
+          id: theft.id,
+          card: card,
+          thief: thief.username
+        };
+    }));
+    return reformattedThefts;
+  } catch (error) {
+    console.log(error);
+    return null;
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 async function theftCard(userId) {
@@ -140,6 +151,8 @@ async function theftCard(userId) {
     } catch (error) {
         console.log(`Error fetching theft: ${error.message}`);
         return null;
+    } finally {
+      await prisma.$disconnect();
     }
 }
 

@@ -15,6 +15,8 @@ async function isAdmin(userId) {
         return user.is_admin;
     } catch (error) {
         throw new Error(`Error in isAdmin function: ${error.message}`);
+    } finally {
+        await prisma.$disconnect();
     }
 }
 
@@ -54,6 +56,8 @@ async function createUser(data) {
         return user;
     } catch (error) {
         throw new Error(`Error in createUser function: ${error.message}`);
+    } finally {
+        await prisma.$disconnect();
     }
 }
 
@@ -99,7 +103,9 @@ async function getLeaderboard() {
         })).sort((a, b) => b.cards - a.cards);;
     } catch (error) {
         throw new Error(`Error in getLeaderboard function: ${error.message}`);
-    } 
+    } finally {
+        await prisma.$disconnect();
+    }
 }
 
 async function getUserData(userId) {
@@ -271,6 +277,8 @@ async function getUserData(userId) {
     } catch (error) {
         console.log(`Error in getUserData function: ${error.message}`);
         return null;
+    } finally {
+        await prisma.$disconnect();
     }
 }
 
@@ -287,6 +295,8 @@ async function incrementConnectionCount(userId) {
             connection_count: res.connection_count + 1
         }
     });
+
+    await prisma.$disconnect();
 }
 
 async function getUsers() {
@@ -298,6 +308,8 @@ async function getUsers() {
         }));
     } catch (error) {
         throw new Error(`Error in getUsers function: ${error.message}`);
+    } finally {
+        await prisma.$disconnect();
     }
 }
 
@@ -343,6 +355,8 @@ async function getUser(data, increment) {
     } catch (error) {
         console.log(`Error in getUser function: ${error.message}`);
         return null;
+    } finally {
+        await prisma.$disconnect();
     }
 }
 

@@ -23,6 +23,8 @@ async function getInventory(userId) {
     } catch (error) {
         console.log(`Error fetching inventory: ${error.message}`);
         return null;
+    } finally {
+        await prisma.$disconnect();
     }
 }
 
@@ -62,6 +64,8 @@ async function dropCard(userId) {
     } catch (error) {
         console.log(`Error fetching drop: ${error.message}`);
         return null;
+    } finally {
+        await prisma.$disconnect();
     }
 }
 

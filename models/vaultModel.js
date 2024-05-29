@@ -21,6 +21,8 @@ async function getVault(userId) {
     } catch (error) {
         console.log(`Error fetching vault: ${error.message}`);
         return null;
+    } finally {
+        await prisma.$disconnect();
     }
 }
 
@@ -72,6 +74,8 @@ async function createVault(userId, card) {
     } catch (error) {
         console.log(`Error in createVault function: ${error.message}`);
         return null;
+    } finally {
+        await prisma.$disconnect();
     }
 }
 
@@ -103,7 +107,9 @@ async function deleteVault(userId, card) {
     } catch (error) {
         console.log(`Error in deleteVault function: ${error.message}`);
         return null;
-    }  
+    } finally {
+        await prisma.$disconnect();
+    } 
 }
 
 module.exports = {
