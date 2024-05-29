@@ -302,10 +302,44 @@ async function incrementConnectionCount(userId) {
 async function getUsers() {
     try {
         const users = await prisma.user.findMany();
+        for (let user of users) {
+            const inventories = await prisma.inventory.findMany({
+                where: {
+                    user_id: user.id
+                }
+            });
+            const inventoryMap = inventories.map(inventory => inventory.card_id);
+
+            const vaults = await prisma.vault.findMany({
+                where: {
+                    user_id: user.id
+                }
+            });
+            const vaultMap = vaults.map(vault => vault.card_id);
+
+            const cards = await prisma.card.findMany({
+                where: {
+                    OR: [
+                        {
+                            id: {
+                              in: inventoryMap
+                            }
+                        },
+                        {
+                            id: {
+                              in: vaultMap
+                            }
+                        }
+                    ]
+                }
+            });
+            user.cards = cards;
+        }
         return users.map(user => ({
             id: user.id,
-            username: user.username
-        }));
+            username: user.username,
+            cards: user.cards.length
+        })).sort((a, b) => b.cards - a.cards);;
     } catch (error) {
         throw new Error(`Error in getUsers function: ${error.message}`);
     } finally {
