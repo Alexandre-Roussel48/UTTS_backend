@@ -2,36 +2,18 @@ const { isAdmin, createUser, checkUser, getUser, getUsers, deleteUser, updateLas
 const jwt = require('jsonwebtoken');
 
 exports.checkConnection = async (req, res) => {
-    if (typeof req.cookies.authToken !== 'undefined') {
-        const bearerToken = req.cookies.authToken;
-        jwt.verify(bearerToken, process.env.SECRET_KEY, (err, authData) => {
-            if (err) {
-                return res.status(200).json({ status: 'Error decrypting authToken' });
-            } else {
-                req.authData = authData;
-            }
-        });
-        const check_data = await getUser(req.authData.user_id, req.body.increment);
-        if (!check_data) {
-            return res.status(200).json({ status: 'Error checking user' });
-        }
-        const user_data = check_data.user;
-        const thefts = check_data.thefts;
-
-        res.json({
-            user_data : {
-                username: user_data.username,
-                connection_count: user_data.connection_count,
-                is_admin: user_data.is_admin,
-                next_card: user_data.next_card,
-                next_theft: user_data.next_theft,
-                thefts: thefts
-            }
-        });
-    } else {
-        return res.status(200).json({ status: 'authToken is not set' });
+    const user = await getUser(req.authData.user_id, req.body.increment);
+    if (!user) {
+        return res.status(200).json({ status: 'Error checking user' });
     }
 
+    res.json({
+            username: user.username,
+            connection_count: user.connection_count,
+            is_admin: user.is_admin,
+            next_card: user.next_card,
+            next_theft: user.next_theft
+    });
 };
 
 exports.getLeaderboard = async(req, res) => {
@@ -76,11 +58,7 @@ exports.register = async (req, res) => {
             return res.status(400).json({ status: 'Username and password are required' });
         }
 
-        await createUser(data);
-
-        const check_data = await checkUser(data);
-
-        const user_data = check_data.user;
+        const user_data = await createUser(data);
 
         let token;
         if (data.remember) {
@@ -107,32 +85,14 @@ exports.register = async (req, res) => {
         });
 
         res.json({
-            user_data: {
-                connection_count: user_data.connection_count,
-                is_admin: user_data.is_admin,
-                next_card: user_data.next_card,
-                next_theft: user_data.next_theft
-            }
+            connection_count: user_data.connection_count,
+            is_admin: user_data.is_admin,
+            next_card: user_data.next_card,
+            next_theft: user_data.next_theft
         });
     } catch (error) {
         res.status(500).json({ status: 'Something went wrong' });
     }
-};
-
-exports.setLastConnection = async (req, res) => {
-    if (typeof req.cookies.authToken !== 'undefined') {
-        const bearerToken = req.cookies.authToken;
-        jwt.verify(bearerToken, process.env.SECRET_KEY, (err, authData) => {
-            if (err) {
-                return res.status(200).json({ status: 'Error checking connection' });
-            } else {
-                req.authData = authData;
-            }
-        });
-        await updateLastConnection(req.authData.user_id);
-        return res.status(200).json({ status: 'Last connection set' });
-    }
-    return res.status(200).json({ status: 'Last connection not set' });
 };
 
 exports.login = async (req, res) => {
@@ -142,9 +102,7 @@ exports.login = async (req, res) => {
             return res.status(400).json({ status: 'Username and password are required' });
         }
 
-        const check_data = await checkUser(data);
-        const user_data = check_data.user;
-        const thefts = check_data.thefts;
+        const user_data = await getUser(data, false);
 
         let token;
         if (data.remember) {
@@ -171,13 +129,10 @@ exports.login = async (req, res) => {
         });
 
         res.json({
-            user_data : {
-                connection_count: user_data.connection_count,
-                is_admin: user_data.is_admin,
-                next_card: user_data.next_card,
-                next_theft: user_data.next_theft,
-                thefts: thefts
-            }
+            connection_count: user_data.connection_count,
+            is_admin: user_data.is_admin,
+            next_card: user_data.next_card,
+            next_theft: user_data.next_theft
         });
     } catch (error) {
         return res.status(500).json({ status: 'Register before logging in' });

@@ -28,7 +28,7 @@ async function createUser(data) {
             data: {
                 id: uuidv4(),
                 username: data.username,
-                connection_count: -1,
+                connection_count: 0,
                 password_hash: hashedPassword,
                 password_salt: salt
             }
@@ -51,71 +51,9 @@ async function createUser(data) {
             data: inventoryItems
         });
 
-        return user.id;
+        return user;
     } catch (error) {
         throw new Error(`Error in createUser function: ${error.message}`);
-    }
-}
-
-async function checkUser(data) {
-    try {
-        const matchingUsers = await prisma.user.findMany({
-            where: {
-                username: data.username
-            }
-        });
-
-        for (const user of matchingUsers) {
-            if (await bcrypt.compare(data.password + user.password_salt, user.password_hash)) {
-                await prisma.user.update({
-                    where: {
-                        id: user.id
-                    },
-                    data: {
-                        connection_count: user.connection_count + 1
-                    }
-                });
-
-                const res = await prisma.user.findUnique({
-                    where: { id: user.id }
-                });
-
-                const thefts = await prisma.theft.findMany({
-                    where: {
-                        victim_id: user.id,
-                        date: {
-                            gt: user.last_connection
-                        }
-                    }
-                });
-
-                const reformattedThefts = await Promise.all(thefts.map(async (theft) => {
-                    const card = await prisma.card.findUnique({
-                        where: {
-                            id: theft.card_id
-                        }
-                    });
-                    const thief = await prisma.user.findUnique({
-                        where: {
-                            id: theft.thief_id
-                        }
-                    });
-                    return {
-                        card: card,
-                        thief: thief.username
-                    };
-                }));
-
-                return {
-                    user: res,
-                    thefts: reformattedThefts
-                };
-            }
-        }
-
-        return null;
-    } catch (error) {
-        throw new Error(`Error in checkUser function: ${error.message}`);
     }
 }
 
@@ -375,64 +313,35 @@ async function deleteUser(userId) {
     }
 }
 
-async function getUser(userId, increment) {
+async function getUser(data, increment) {
     try {
-        if (increment) {
-            incrementConnectionCount(userId);
+        let res;
+
+        if (data.username) {
+            const matchingUsers = await prisma.user.findMany({
+                where: {
+                    username: data.username
+                }
+            });
+
+            for (const user of matchingUsers) {
+                if (await bcrypt.compare(data.password + user.password_salt, user.password_hash)) {
+                    res = await prisma.user.findUnique({
+                        where: { id: user.id }
+                    });
+                    incrementConnectionCount(res.id);
+                }
+            }
+        } else {
+            res = await prisma.user.findUnique({
+                where: { id: data }
+            });
+            if (increment) {incrementConnectionCount(res.id);}
         }
 
-        const res = await prisma.user.findUnique({
-            where: { id: userId }
-        });
-
-        const thefts = await prisma.theft.findMany({
-            where: {
-                victim_id: userId,
-                date: {
-                    gt: res.last_connection
-                }
-            }
-        });
-
-        const reformattedThefts = await Promise.all(thefts.map(async (theft) => {
-            const card = await prisma.card.findUnique({
-                where: {
-                    id: theft.card_id
-                }
-            });
-            const thief = await prisma.user.findUnique({
-                where: {
-                    id: theft.thief_id
-                }
-            });
-            return {
-                card: card,
-                thief: thief.username
-            };
-        }));
-
-        return {
-            user: res,
-            thefts: reformattedThefts
-        };
+        return res ? res : null;
     } catch (error) {
         console.log(`Error in getUser function: ${error.message}`);
-        return null;
-    }
-}
-
-async function updateLastConnection(userId) {
-    try {
-        await prisma.user.update({
-            where: {
-                id: userId
-            },
-            data: {
-                last_connection: new Date(Date.now())
-            }
-        });
-    } catch (error) {
-        console.log(`Error updating last connection: ${error.message}`);
         return null;
     }
 }
@@ -440,11 +349,9 @@ async function updateLastConnection(userId) {
 module.exports = {
     isAdmin,
     createUser,
-    checkUser,
     getLeaderboard,
     getUsers,
     deleteUser,
     getUser,
-    getUserData,
-    updateLastConnection,
+    getUserData
 };

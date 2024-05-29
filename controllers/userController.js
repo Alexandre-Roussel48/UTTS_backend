@@ -2,7 +2,7 @@ const { getUserData } = require('../models/userModel');
 const { getInventory, dropCard } = require('../models/inventoryModel');
 const { getForge, forgeCard, updateForge, deleteForge } = require('../models/forgeModel');
 const { getVault, createVault, deleteVault } = require('../models/vaultModel');
-const { theftCard } = require('../models/theftModel');
+const { theftCard, deleteTheft, getThefts } = require('../models/theftModel');
 const userIdToWsMap = require('../websocket');
 
 exports.getInventory = async (req, res) => {
@@ -37,14 +37,12 @@ exports.drop = async (req, res) => {
   res.json(dropData);
 };
 
-function sendMessageToUser(userId, jsonData) {
+async function sendMessageToUser(userId) {
   try {
     const ws = userIdToWsMap[userId];
     if (ws) {
-      const jsonString = JSON.stringify({
-        card: jsonData.card,
-        thief: jsonData.thief
-      });
+      const thefts = await getThefts(userId);
+      const jsonString = JSON.stringify(thefts);
       ws.send(jsonString);
     }
   } catch (error) {
@@ -57,11 +55,25 @@ exports.theft = async (req, res) => {
   if (!theftData) {
     return res.status(401).json({ status: 'Theft unauthorized now' });
   }
-  sendMessageToUser(theftData.victim_id, theftData);
+  sendMessageToUser(theftData.victim_id);
   res.json({
     theft: theftData.card,
-    next_theft: theftData.next_theft
+    next_theft: theftData.next_theft,
+    victim : theftData.victim
   });
+};
+
+exports.deleteTheft = async (req, res) => {
+  const theftData = await deleteTheft(req.authData.user_id, req.body.id);
+  if (!theftData) {
+    return res.status(401).json({ status : 'Record doesn\'t exists' });
+  }
+  return res.status(200).json({ status : 'Notification deleted' });
+};
+
+exports.getThefts = async (req, res) => {
+  const thefts = await getThefts(req.authData.user_id);
+  res.json(thefts);
 };
 
 exports.forge = async (req, res) => {

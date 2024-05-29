@@ -10,8 +10,7 @@ function routes() {
 
 	router.get('/leaderboard', indexController.getLeaderboard);
 	router.get('/users', verifyToken, indexController.getUsers);
-	router.post('/check_connection', indexController.checkConnection);
-	router.post('/set_last_connection', indexController.setLastConnection);
+	router.post('/check_connection', verifyToken, indexController.checkConnection);
 	router.post('/register', indexController.register);
 	router.post('/login', indexController.login);
 	router.post('/logout', indexController.logout);

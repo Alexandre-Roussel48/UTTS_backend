@@ -11,6 +11,7 @@ async function createTheft(userId) {
     });
     let victimId;
     let inventories;
+    let gap = 0;
     do {
       victimId = users[Math.floor(Math.random() * users.length)].id;
 
@@ -22,6 +23,8 @@ async function createTheft(userId) {
           card_id: true
         }
       });
+      gap += 1;
+      if (gap > 100) {return null;}
     } while (inventories.length === 0);
 
     const randomCardId = inventories[Math.floor(Math.random() * inventories.length)].card_id;
@@ -34,11 +37,60 @@ async function createTheft(userId) {
       }
     });
 
-    return theft.id;
+    return theft;
   } catch (error) {
     console.log(error.message);
     return null;
   }
+}
+
+async function deleteTheft(userId, theftId) {
+  try {
+    const record = await prisma.theft.findFirst({
+      where: {
+        id: theftId,
+        victim_id: userId,
+      },
+    });
+    if (record) {
+      await prisma.theft.delete({
+        where: {
+          id: theftId,
+        },
+      });
+    }
+    return 1;
+  } catch (error) {
+    console.log(error.message);
+    return null;
+  }
+}
+
+async function getThefts(victimId) {
+  const thefts = await prisma.theft.findMany({
+    where: {
+      victim_id: victimId
+    }
+  });
+
+  const reformattedThefts = await Promise.all(thefts.map(async (theft) => {
+      const card = await prisma.card.findUnique({
+          where: {
+              id: theft.card_id
+          }
+      });
+      const thief = await prisma.user.findUnique({
+          where: {
+              id: theft.thief_id
+          }
+      });
+      return {
+        id: theft.id,
+        card: card,
+        thief: thief.username
+      };
+  }));
+  return reformattedThefts;
 }
 
 async function theftCard(userId) {
@@ -51,15 +103,15 @@ async function theftCard(userId) {
             return null;
         }
 
-        const theftId = await createTheft(userId);
+        const theft = await createTheft(userId);
 
-        const updatedUser = await prisma.user.update({
+        const thief = await prisma.user.update({
             where: { id: userId },
             data: { next_theft: new Date(Date.now() + (1000 * 60 * 2)) },
         });
 
-        const theft = await prisma.theft.findUnique({
-            where: { id: theftId },
+        const victim = await prisma.user.findUnique({
+          where: { id: theft.victim_id }
         });
 
         const card = await prisma.card.findUnique({
@@ -84,7 +136,7 @@ async function theftCard(userId) {
             },
         });
 
-        return { card: card, next_theft: updatedUser.next_theft, thief : user.username, victim_id : theft.victim_id};
+        return { card: card, next_theft: thief.next_theft, thief : user.username, victim : victim.username, victim_id : theft.victim_id};
     } catch (error) {
         console.log(`Error fetching theft: ${error.message}`);
         return null;
@@ -92,5 +144,7 @@ async function theftCard(userId) {
 }
 
 module.exports = {
-    theftCard
+    theftCard,
+    deleteTheft,
+    getThefts
 };
