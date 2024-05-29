@@ -5,13 +5,13 @@ const userController = require('../controllers/userController');
 const router = express.Router();
 
 const dropLimiter = rateLimit({
-  windowMs: 20 * 1000,
+  windowMs: 19 * 1000,
   max: 1,
   message: "Too many requests, please try again later."
 });
 
 const theftLimiter = rateLimit({
-  windowMs: 120 * 1000,
+  windowMs: 119 * 1000,
   max: 1,
   message: "Too many requests, please try again later."
 });
