@@ -5,7 +5,7 @@ function verifyToken(req, res, next) {
     const bearerToken = req.cookies.authToken;
     jwt.verify(bearerToken, process.env.SECRET_KEY, (err, authData) => {
       if (err) {
-        res.sendStatus(403).json({ status: 'Token is wrong' });
+        res.status(403).json({ status: 'Token is wrong' });
       } else {
         req.authData = authData;
         const refreshToken = req.cookies.refreshToken;
@@ -27,7 +27,7 @@ function verifyToken(req, res, next) {
       }
     });
   } else {
-    res.sendStatus(403).json({ status: 'Token is not set' });
+    res.status(403).json({ status: 'Token is not set' });
   }
 }
 
