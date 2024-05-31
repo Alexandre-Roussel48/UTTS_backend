@@ -7,13 +7,13 @@ const router = express.Router();
 const dropLimiter = rateLimit({
   windowMs: 19 * 1000,
   max: 1,
-  message: "Too many requests, please try again later."
+  message: JSON.stringify({ status : "Too many requests, please try again later."})
 });
 
 const theftLimiter = rateLimit({
   windowMs: 119 * 1000,
   max: 1,
-  message: "Too many requests, please try again later."
+  message: JSON.stringify({ status : "Too many requests, please try again later."})
 });
 
 router.get('/inventory', userController.getInventory);
