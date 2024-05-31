@@ -100,7 +100,7 @@ async function getLeaderboard() {
         return users.map(user => ({
             username: user.username,
             cards: user.cards.length
-        })).sort((a, b) => b.cards - a.cards);;
+        })).sort((a, b) => b.cards - a.cards).slice(0,10);
     } catch (error) {
         throw new Error(`Error in getLeaderboard function: ${error.message}`);
     } finally {
