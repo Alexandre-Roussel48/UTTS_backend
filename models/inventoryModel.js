@@ -2,23 +2,123 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
+async function createOrUpdateInventory(userId, cardId) {
+  try {
+    const inventory = await prisma.inventory.upsert({
+      where: {
+        user_id_card_id: {
+          user_id: userId,
+          card_id: cardId
+        }
+      },
+      update: {
+        count: {
+          increment: 1
+        }
+      },
+      create: {
+        user_id: userId,
+        card_id: cardId,
+        count: 1
+      }
+    });
+    return inventory;
+  } catch (error) {
+    console.error('Error creating or updating inventory:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+async function deleteOrUpdateInventory(userId, cardId, forge) {
+  try {
+    const inventory = await prisma.inventory.findUnique({
+      where: {
+        user_id_card_id: {
+          user_id: userId,
+          card_id: cardId
+        }
+      }
+    });
+
+
+    if (inventory) {
+      if (inventory.count > 1) {
+
+        if (forge || inventory.count == inventory.forge) {
+          const updatedInventory = await prisma.inventory.update({
+            where: {
+              user_id_card_id: {
+                user_id: userId,
+                card_id: cardId
+              }
+            },
+            data: {
+              forge: {
+                decrement: 1
+              },
+              count: {
+                decrement: 1
+              }
+            }
+          });
+          return updatedInventory;
+        }
+
+        const updatedInventory = await prisma.inventory.update({
+          where: {
+            user_id_card_id: {
+              user_id: userId,
+              card_id: cardId
+            }
+          },
+          data: {
+            count: {
+              decrement: 1
+            }
+          }
+        });
+        return updatedInventory;
+      }
+      
+      await prisma.inventory.delete({
+        where: {
+          user_id_card_id: {
+            user_id: userId,
+            card_id: cardId
+          }
+        }
+      });
+      return null;
+    }
+  } catch (error) {
+    console.error('Error creating, updating, or deleting inventory:', error);
+    throw error;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 async function getInventory(userId) {
     try {
         const inventories = await prisma.inventory.findMany({
             where: {
                 user_id: userId,
-                forge: false
+                count: {gt : 0}
             }
         });
-        const cardIds = inventories.map(inventory => inventory.card_id);
-        const cards = [];
-        for (index in cardIds) {
-            cards.push(await prisma.card.findUnique({
+
+        const filteredInventories = inventories.filter(inventory => (inventory.count - inventory.forge) > 0);
+
+        const cards = await Promise.all(filteredInventories.map(async (inventory) => {
+            const card = await prisma.card.findUnique({
                 where: {
-                    id: cardIds[index]
+                    id: inventory.card_id
                 }
-            }));
-        }
+            });
+            card.count = inventory.count - inventory.forge;
+            return card;
+        }));
         return cards;
     } catch (error) {
         console.log(`Error fetching inventory: ${error.message}`);
@@ -34,7 +134,7 @@ async function dropCard(userId) {
             where: { id: userId },
         });
 
-        if (!user || user.next_card > new Date()) {
+        if (user.next_card > new Date()) {
             return null;
         }
 
@@ -53,12 +153,7 @@ async function dropCard(userId) {
 
         const drop = dropArray[0];
 
-        const inventory = await prisma.inventory.create({
-            data: {
-                user_id: userId,
-                card_id: drop.id,
-            },
-        });
+        await createOrUpdateInventory(userId, drop.id);
 
         return { drop: drop, next_card: updatedUser.next_card };
     } catch (error) {
@@ -70,6 +165,8 @@ async function dropCard(userId) {
 }
 
 module.exports = {
+    createOrUpdateInventory,
+    deleteOrUpdateInventory,
     getInventory,
     dropCard
 };

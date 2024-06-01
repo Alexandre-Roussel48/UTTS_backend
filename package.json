@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "back": "node app.js",
-    "db": "node setup-database.js"
+    "db": "npx prisma db push && node prisma/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^5.13.0",

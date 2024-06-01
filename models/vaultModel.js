@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const { createOrUpdateInventory, deleteOrUpdateInventory } = require('../models/inventoryModel');
 
 const prisma = new PrismaClient();
 
@@ -44,12 +45,7 @@ async function createVault(userId, card) {
                 }
             });
 
-            await prisma.inventory.create({
-                data: {
-                    user_id: userId,
-                    card_id: oldVault.card_id
-                }
-            });
+            await createOrUpdateInventory(userId, oldVault.card_id);
         }
         await prisma.vault.create({
             data: {
@@ -59,16 +55,7 @@ async function createVault(userId, card) {
             }
         });
 
-        const inventoryToDelete = await prisma.inventory.findFirst({
-            where: {
-                user_id: userId,
-                card_id: card.id
-            }
-        });
-
-        await prisma.inventory.deleteMany({
-            where: { id: inventoryToDelete.id },
-        });
+        await deleteOrUpdateInventory(userId, card.id, false);
 
         return 1;
     } catch (error) {
@@ -96,12 +83,7 @@ async function deleteVault(userId, card) {
             }
         });
 
-        await prisma.inventory.create({
-            data: {
-                user_id: userId,
-                card_id: oldVault.card_id
-            }
-        });
+        await createOrUpdateInventory(userId, oldVault.card_id);
 
         return 1;
     } catch (error) {

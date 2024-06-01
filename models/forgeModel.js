@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const { getInventory, createOrUpdateInventory, deleteOrUpdateInventory } = require('../models/inventoryModel');
 
 const prisma = new PrismaClient();
 
@@ -7,18 +8,18 @@ async function getForge(userId) {
         const inventories = await prisma.inventory.findMany({
             where: {
                 user_id: userId,
-                forge: true
+                forge: {gt : 0}
             }
         });
-        const cardIds = inventories.map(inventory => inventory.card_id);
-        const cards = [];
-        for (index in cardIds) {
-            cards.push(await prisma.card.findUnique({
+        const cards = await Promise.all(inventories.map(async (inventory) => {
+            const card = await prisma.card.findUnique({
                 where: {
-                    id: cardIds[index]
+                    id: inventory.card_id
                 }
-            }));
-        }
+            });
+            card.count = inventory.forge;
+            return card;
+        }));
         return cards;
     } catch (error) {
         console.log(`Error fetching forge: ${error.message}`);
@@ -30,24 +31,7 @@ async function getForge(userId) {
 
 async function forgeCard(userId) {
     try {
-        const inventories = await prisma.inventory.findMany({
-            where: {
-                user_id: userId,
-                forge: true
-            }
-        });
-        if (inventories.length == 0) {
-            return;
-        }
-        const cardIds = inventories.map(inventory => inventory.card_id);
-        const cards = [];
-        for (index in cardIds) {
-            cards.push(await prisma.card.findUnique({
-                where: {
-                    id: cardIds[index]
-                }
-            }));
-        }
+        const cards = await getForge(userId);
         let weight = 0;
         for (let card of cards) {
             if (card.rarity == "common") {weight += 1;}
@@ -63,10 +47,8 @@ async function forgeCard(userId) {
             weight *= 2;
         }
 
-        for (let inventory of inventories) {
-            await prisma.inventory.delete({
-                where: { id: inventory.id }
-            });
+        for (let card of cards) {
+            await deleteOrUpdateInventory(userId, card.id, true);
         }
 
         // Forge a new card
@@ -113,12 +95,7 @@ async function forgeCard(userId) {
             forge = legendaryCards.sort(() => Math.random() - 0.5).slice(0, 1)[0];
         }
 
-        await prisma.inventory.create({
-            data: {
-                user_id: userId,
-                card_id: forge.id
-            }
-        });
+        await createOrUpdateInventory(userId, forge.id);
 
         return forge;
     } catch (error) {
@@ -134,19 +111,21 @@ async function updateForge(userId, card) {
         const inventory = await prisma.inventory.findFirst({
             where: {
                 user_id : userId,
-                card_id : card.id,
-                forge : false
+                card_id : card.id
             }
         });
 
-        await prisma.inventory.update({
-            where: {
-                id: inventory.id
-            },
-            data: {
-                forge : true
-            }
-        });
+        if (inventory.count - inventory.forge > 0) {
+            await prisma.inventory.update({
+                where: {
+                    id: inventory.id
+                },
+                data: {
+                    forge : inventory.forge + 1
+                }
+            });
+        }
+
 
         return 1;
     } catch (error) {
@@ -162,19 +141,20 @@ async function deleteForge(userId, card) {
         const inventory = await prisma.inventory.findFirst({
             where: {
                 user_id : userId,
-                card_id : card.id,
-                forge : true
+                card_id : card.id
             }
         });
 
-        await prisma.inventory.update({
-            where: {
-                id: inventory.id
-            },
-            data: {
-                forge : false
-            }
-        });
+        if (inventory.forge > 0) {
+            await prisma.inventory.update({
+                where: {
+                    id: inventory.id
+                },
+                data: {
+                    forge : inventory.forge - 1
+                }
+            });
+        }
 
         return 1;
     } catch (error) {

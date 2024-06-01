@@ -1,7 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
-const { createOrUpdateTheft } = require('../models/theftModel');
+const { createTheft } = require('../models/theftModel');
+const { createOrUpdateInventory } = require('../models/inventoryModel');
 
 const prisma = new PrismaClient();
 
@@ -30,7 +31,6 @@ async function createUser(data) {
             data: {
                 id: uuidv4(),
                 username: data.username,
-                connection_count: 0,
                 password_hash: hashedPassword,
                 password_salt: salt
             }
@@ -49,9 +49,9 @@ async function createUser(data) {
             card_id: card.id
         }));
 
-        await prisma.inventory.createMany({
-            data: inventoryItems
-        });
+        for (inventory of inventoryItems) {
+            await createOrUpdateInventory(inventory.user_id, inventory.card_id);
+        }
 
         return user;
     } catch (error) {
@@ -282,23 +282,6 @@ async function getUserData(userId) {
     }
 }
 
-async function incrementConnectionCount(userId) {
-    const res = await prisma.user.findUnique({
-        where: { id: userId }
-    });
-
-    await prisma.user.update({
-        where: {
-            id: userId
-        },
-        data: {
-            connection_count: res.connection_count + 1
-        }
-    });
-
-    await prisma.$disconnect();
-}
-
 async function getUsers() {
     try {
         const users = await prisma.user.findMany();
@@ -359,7 +342,7 @@ async function deleteUser(userId) {
     }
 }
 
-async function getUser(data, increment) {
+async function getUser(data) {
     try {
         let res;
 
@@ -375,14 +358,12 @@ async function getUser(data, increment) {
                     res = await prisma.user.findUnique({
                         where: { id: user.id }
                     });
-                    incrementConnectionCount(res.id);
                 }
             }
         } else {
             res = await prisma.user.findUnique({
                 where: { id: data }
             });
-            if (increment) {incrementConnectionCount(res.id);}
         }
 
         return res ? res : null;

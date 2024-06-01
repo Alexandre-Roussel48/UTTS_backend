@@ -62,7 +62,6 @@ async function main() {
         data: {
             id: uuidv4(),
             username: process.env.ADMIN_USERNAME,
-            connection_count: -1,
             password_hash: hashedPassword,
             password_salt: salt,
             is_admin: true
@@ -71,12 +70,10 @@ async function main() {
 
     console.log('Multiple rows created successfully');
   } catch (error) {
-    console.error('Error creating multiple rows:', error.message || error);
+    console.log('Multiple rows already created');
   } finally {
     await prisma.$disconnect();
   }
 }
 
-main().catch((e) => {
-  console.error('An unexpected error occurred:', e.message || e);
-});
+main();
